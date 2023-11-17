@@ -1,0 +1,12 @@
+[
+    {
+        "concept_name": "FilledNotFilled3",
+        "local_detection": [
+            "The first image contains four squares, each a different color and size, arranged diagonally from top left to bottom right. The color order from largest to smallest is yellow, blue, red, and gray. In the second image, there is only a solid color, which is the red from the third largest square in the first image.\n\nThe transformation involved removing all shapes except for the third largest square and enlarging it to fill the entire canvas of the second image. The colors yellow, blue, and gray, as well as the square shapes themselves, have been removed, leaving only the red color."
+        ],
+        "generalization": "Based on the provided comparison, Jenny's rule for changing pictures seems to be that she selects the third largest shape in the first picture, removes all other shapes and colors, and then enlarges this selected shape to fill the entire canvas of the second picture. The specific changes applied according to this rule are as follows:\n\n1. Ignoring the two larger shapes and any smaller shapes (if present).\n2. Keeping only the third largest shape.\n3. Using the color of the retained third largest shape as the solid color for the new image.\n4. Expanding the retained shape to cover the entire space of the new image, effectively creating a solid-color square.\n\nThis rule is inferred strictly from the given pair of images. If other images follow a different pattern or contain additional nuances, the rule might need to be adjusted. However, based on what's presented, this rule should apply consistently.",
+        "extrapolation": [
+            "In the new picture, there are four rectangles of different sizes and colors. According to the rule established from Jenny's previous picture, she selects the third largest shape and changes the entire canvas to the color of that shape. \n\nThe rectangles are arranged from largest to smallest as follows: green, gray, light blue, and dark blue. The third largest shape is the light blue rectangle. So following the rule, Jenny will change the entire canvas to light blue, removing all other shapes and colors. The final image will be a solid light blue square."
+        ]
+    }
+]

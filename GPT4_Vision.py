@@ -2,6 +2,7 @@ import os
 import base64
 import requests
 import json
+import time
 
 file_directory = "/Users/anisamajhi/Downloads/ConceptARC_vision"
 output_directory = "./outputs"
@@ -11,6 +12,10 @@ train_data_initial_prompt = "Jenny likes to change pictures in a certain way. Sh
 train_data_followup_prompt = "Now Jenny changes the first object/picture into the second object/picture. Can you tell me what changed between the two pictures?"
 general_rule_prompt = "Now can you tell me what the general rule for how Jenny changes all the pictures, based on the comparisons you made? Be as specific as possible, but remember that the rule must apply to all the pictures."
 test_data_prompt = "Now Jenny sees a new picture. How exactly is she going to change it?"
+
+requests_per_day = 100
+daily_seconds_run = 24 * 60 * 60
+delay = daily_seconds_run / requests_per_day
 
 headers = {
   "Content-Type": "application/json",
@@ -81,8 +86,8 @@ def update_payload(previous_payload, response, new_prompt):
                         ]
     }
 
-    previous_payload["messages"] += response_message
-    previous_payload["messages"] += new_prompt
+    previous_payload["messages"] += [response_message]
+    previous_payload["messages"] += [new_prompt]
 
     return previous_payload
 
@@ -92,7 +97,7 @@ for i in range(3):
     output_file = output_directory + f"iteration_{i}.json"
     results = []
 
-    for concept in concepts:
+    for concept in concepts[:1]:
         concept_result = {"concept_name": concept,
                   "local_detection": [],
                   "generalization": "",
@@ -107,9 +112,12 @@ for i in range(3):
 
         payload = initial_payload(initial_input_image, initial_output_image)
         response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
+        response = response.json()     
         response = response['choices'][0]['message']['content']
-        concept_result["local_detection"] += response
+        concept_result["local_detection"] += [response]
+        time.sleep(delay)
 
+        
         for data in train_data[1:]:
             input_image = encode_image(file_directory + "/" + data[0])
             output_image = encode_image(file_directory + "/" + data[1])
@@ -137,51 +145,32 @@ for i in range(3):
             
             payload = update_payload(payload, response, new_prompt)
             response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
+            response = response.json()     
             response = response['choices'][0]['message']['content']
-            concept_result["local_detection"] += response
-
+            concept_result["local_detection"] += [response]
+            time.sleep(delay)
+        
         # Step 2: Generalization. 
-        general_rule_prompt_message = {
-                    "role": "user",
+        general_rule_prompt_message = {"role": "user",
                     "content": [
                         {
                             "type": "text",
                             "text": general_rule_prompt
-                        },
-                    ]
-                }
-        payload = update_payload(payload, response, general_rule_prompt)
-        response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
-        response = response['choices'][0]['message']['content']
-        concept_result["generalization"] = response
-
-        # Step 3: Extrapolation.
-        test_data = get_file_tuples_for_concept(concept, "test")
-        
-        initial_input_image = encode_image(file_directory + "/" + test_data[0][0])
-        
-        new_test_prompt = {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "text",
-                            "text": test_data_prompt
-                        },
-                        {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": f"data:image/jpeg;base64,{initial_input_image}"
-                            }
                         }
                     ]
                 }
-        payload = update_payload(payload, response, new_test_prompt)
+
+        payload = update_payload(payload, response, general_rule_prompt_message)
         response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
+        response = response.json()
         response = response['choices'][0]['message']['content']
-        concept_result["extrapolation"] += response
+        concept_result["generalization"] = response
+        time.sleep(delay)
 
+        # Step 3: Extrapolation.
+        test_data = get_file_tuples_for_concept(concept, "test")
 
-        for data in test_data[1:]:
+        for data in test_data:
             input_image = encode_image(file_directory + "/" + data[0])
             new_prompt = {
                     "role": "user",
@@ -200,10 +189,13 @@ for i in range(3):
                 }
             payload = update_payload(payload, response, new_prompt)
             response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
+            response = response.json()
             response = response['choices'][0]['message']['content']
-            concept_result["extrapoliation"] += response
+            concept_result["extrapolation"] += [response]
+            time.sleep(delay)
+            
 
         results.append(concept_result)
     
     with open(output_file, 'w') as file:
-        json.dump(data, file, indent=4)
+        json.dump(results, file, indent=4)
