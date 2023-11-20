@@ -15,7 +15,7 @@ test_data_prompt = "Now Jenny sees a new picture. How exactly is she going to ch
 
 requests_per_day = 100
 daily_seconds_run = 24 * 60 * 60
-delay = daily_seconds_run / requests_per_day
+delay = daily_seconds_run / requests_per_day # Adjust to speed up program
 
 headers = {
   "Content-Type": "application/json",
@@ -94,10 +94,13 @@ def update_payload(previous_payload, response, new_prompt):
 concepts = get_concept_names()
 
 for i in range(3):
-    output_file = output_directory + f"iteration_{i}.json"
+    output_file = output_directory + f"/iteration_{i + 1}.json"
     results = []
 
-    for concept in concepts[:1]:
+    for concept in concepts:
+        print("---------------------")
+        print(f"Beginning Concept {concept}")
+
         concept_result = {"concept_name": concept,
                   "local_detection": [],
                   "generalization": "",
@@ -105,6 +108,9 @@ for i in range(3):
                   }
 
         # Step 1: Local Detection.
+        print("--------")
+        print("Beginning Local Detection.")
+
         train_data = get_file_tuples_for_concept(concept, "train")
 
         initial_input_image = encode_image(file_directory + "/" + train_data[0][0])
@@ -115,10 +121,11 @@ for i in range(3):
         response = response.json()     
         response = response['choices'][0]['message']['content']
         concept_result["local_detection"] += [response]
+
+        print(f"Completed Local Detection on Sample 0. Sleeping for {delay} seconds.")
         time.sleep(delay)
 
-        
-        for data in train_data[1:]:
+        for i, data in enumerate(train_data[1:]):
             input_image = encode_image(file_directory + "/" + data[0])
             output_image = encode_image(file_directory + "/" + data[1])
             new_prompt = {
@@ -148,9 +155,14 @@ for i in range(3):
             response = response.json()     
             response = response['choices'][0]['message']['content']
             concept_result["local_detection"] += [response]
+
+            print(f"Completed Local Detection on Sample {i + 1}. Sleeping for {delay} seconds.")
             time.sleep(delay)
         
         # Step 2: Generalization. 
+        print("--------")
+        print("Beginning Generalization.")
+
         general_rule_prompt_message = {"role": "user",
                     "content": [
                         {
@@ -165,12 +177,17 @@ for i in range(3):
         response = response.json()
         response = response['choices'][0]['message']['content']
         concept_result["generalization"] = response
+
+        print(f"Completed Generalization. Sleeping for {delay} seconds.")
         time.sleep(delay)
 
         # Step 3: Extrapolation.
+        print("--------")
+        print("Beginning Extrapolation.")
+
         test_data = get_file_tuples_for_concept(concept, "test")
 
-        for data in test_data:
+        for i, data in enumerate(test_data):
             input_image = encode_image(file_directory + "/" + data[0])
             new_prompt = {
                     "role": "user",
@@ -192,6 +209,8 @@ for i in range(3):
             response = response.json()
             response = response['choices'][0]['message']['content']
             concept_result["extrapolation"] += [response]
+
+            print(f"Completed Extrapolation on Sample {i}. Sleeping for {delay} seconds.")
             time.sleep(delay)
             
 
